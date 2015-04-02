@@ -201,4 +201,7 @@ TODO
 Reporting bugs
 ==============
 
-TODO
+Report all bugs and feature requests to our `issue tracker`_.
+
+
+_issue tracker: https://github.com/Outernet-Project/sqlize/issues
