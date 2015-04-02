@@ -66,7 +66,7 @@ If you want to restrict your select, all common clauses are available::
 
 So far it looks like a rather complicated way of writing SQL. The real power,
 though, comes from the fact that every aspect of the query object can be
-tweaked.
+tweaked.::
 
     >>> q = sql.Select()
     >>> str(q)
@@ -134,19 +134,19 @@ get in your way.
 Apart from selecting, sqlize supports inserts, updates, deletion, and
 replacement.
 
-Inserts look like this:
+Inserts look like this::
 
     >>> q = sql.Insert('foo', '?, ?, ?')
     >>> str(q)
     'INSERT INTO foo VALUES (?, ?, ?);'
 
-You can also specify columns:
+You can also specify columns::
 
     >>> q = sql.Insert('foo', '?, ?, ?', ('foo', 'bar', 'baz'))
     >>> str(q)
     'INSERT INTO foo (foo, bar, baz) VALUES (?, ?, ?);'
 
-If you omit the values, the query will contain named placeholders:
+If you omit the values, the query will contain named placeholders::
 
     >>> q = sql.Insert('foo', cols=('foo', 'bar', 'baz'))
     >>> str(q)
@@ -177,7 +177,7 @@ modified after initialization::
 Any keyword arguments passed to ``Update()`` will be converted to ``SET``
 clauses.
 
-Deleting rows can be accomplished using the ``Delete()`` class.
+Deleting rows can be accomplished using the ``Delete()`` class.::
 
     >>> q = sql.Delete('foo', 'bar = ?')
     >>> str(q)
