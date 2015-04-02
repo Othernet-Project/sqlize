@@ -1,0 +1,5 @@
+*.sw[op]
+*.py[co]
+/.ropeproject
+/.tox
+/*.egg-info
