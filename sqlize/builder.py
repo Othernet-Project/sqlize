@@ -398,7 +398,33 @@ class Delete(Statement):
         return self._get_clause(self.where, Where)
 
 
-class Insert(Statement):
+class ParamSerializerMixin(object):
+
+    @property
+    def _vals(self):
+        if not self.vals:
+            return self._get_sqlarray((':' + c for c in self.cols))
+        return self._get_sqlarray(self.vals)
+
+    @property
+    def _cols(self):
+        return self._get_sqlarray(self.cols)
+
+    @property
+    def _pairs(self):
+        return ', '.join(['{} = {}'.format(k, v)
+                          for k, v in zip(self.cols, self.vals)])
+
+    @staticmethod
+    def _get_sqlarray(vals):
+        if is_seq(vals):
+            return '({})'.format(', '.join(vals))
+        if vals.startswith('(') and vals.endswith(')'):
+            return vals
+        return '({})'.format(vals)
+
+
+class Insert(Statement, ParamSerializerMixin):
     keyword = 'INSERT INTO'
 
     def __init__(self, table, vals=None, cols=None):
@@ -415,26 +441,8 @@ class Insert(Statement):
         sql += ' VALUES {}'.format(self._vals)
         return sql + ';'
 
-    @property
-    def _vals(self):
-        if not self.vals:
-            return self._get_sqlarray((':' + c for c in self.cols))
-        return self._get_sqlarray(self.vals)
 
-    @property
-    def _cols(self):
-        return self._get_sqlarray(self.cols)
-
-    @staticmethod
-    def _get_sqlarray(vals):
-        if is_seq(vals):
-            return '({})'.format(', '.join(vals))
-        if vals.startswith('(') and vals.endswith(')'):
-            return vals
-        return '({})'.format(vals)
-
-
-class Replace(Statement):
+class Replace(Statement, ParamSerializerMixin):
     clauses = {'where': Where}
 
     def __init__(self, table, cols, vals, where, **kwargs):
@@ -475,26 +483,3 @@ class Replace(Statement):
                    vals=self._vals,
                    pairs=self._pairs,
                    where=self._where)
-
-    @property
-    def _pairs(self):
-        return ', '.join(['{} = {}'.format(k, v)
-                          for k, v in zip(self.cols, self.vals)])
-
-    @property
-    def _vals(self):
-        if not self.vals:
-            return self._get_sqlarray((':' + c for c in self.cols))
-        return self._get_sqlarray(self.vals)
-
-    @property
-    def _cols(self):
-        return self._get_sqlarray(self.cols)
-
-    @staticmethod
-    def _get_sqlarray(vals):
-        if is_seq(vals):
-            return '({})'.format(', '.join(vals))
-        if vals.startswith('(') and vals.endswith(')'):
-            return vals
-        return '({})'.format(vals)
