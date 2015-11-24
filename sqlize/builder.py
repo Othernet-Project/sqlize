@@ -403,7 +403,7 @@ class ParamSerializerMixin(object):
     @property
     def _vals(self):
         if not self.vals:
-            return self._get_sqlarray(('%%(%s)s' % c  for c in self.cols))
+            return self._get_sqlarray(('%({})s'.format(c) for c in self.cols))
         return self._get_sqlarray(self.vals)
 
     @property
