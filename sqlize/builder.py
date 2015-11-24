@@ -434,5 +434,67 @@ class Insert(Statement):
         return '({})'.format(vals)
 
 
-class Replace(Insert):
-    keyword = 'REPLACE INTO'
+class Replace(Statement):
+    clauses = {'where': Where}
+
+    def __init__(self, table, cols, vals, where, **kwargs):
+        self.table = table
+        self.cols = cols
+        self.vals = vals
+        self.where = where
+
+    @property
+    def _where(self):
+        return self._get_clause(self.where, Where)
+
+    def serialize(self):
+        return '''
+        DO $$
+        BEGIN
+            LOOP
+                -- first try to update the key
+                UPDATE {table:s} SET {pairs:s} {where:s};
+                IF found THEN
+                    RETURN;
+                END IF;
+                -- not there, so try to insert the key
+                -- if someone else inserts the same key concurrently,
+                -- we could get a unique-key failure
+                BEGIN
+                    INSERT INTO {table:s}{cols:s} VALUES {vals:s};
+                    RETURN;
+                EXCEPTION WHEN unique_violation THEN
+                    -- Do nothing, and loop to try the UPDATE again.
+                END;
+            END LOOP;
+        END;
+        $$
+        LANGUAGE plpgsql;
+        '''.format(table=self.table,
+                   cols=self._cols,
+                   vals=self._vals,
+                   pairs=self._pairs,
+                   where=self._where)
+
+    @property
+    def _pairs(self):
+        return ', '.join(['{} = {}'.format(k, v)
+                          for k, v in zip(self.cols, self.vals)])
+
+    @property
+    def _vals(self):
+        if not self.vals:
+            return self._get_sqlarray((':' + c for c in self.cols))
+        return self._get_sqlarray(self.vals)
+
+    @property
+    def _cols(self):
+        return self._get_sqlarray(self.cols)
+
+    @staticmethod
+    def _get_sqlarray(vals):
+        if is_seq(vals):
+            return '({})'.format(', '.join(vals))
+        if vals.startswith('(') and vals.endswith(')'):
+            return vals
+        return '({})'.format(vals)
