@@ -36,7 +36,7 @@ def sqlarray(n):
         return ''
     if is_seq(n):
         n = len(n)
-    return '({})'.format(', '.join('?' * n))
+    return '({})'.format(', '.join('%s' * n))
 
 
 def sqlin(col, n):
@@ -403,22 +403,31 @@ class ParamSerializerMixin(object):
     @property
     def _vals(self):
         if not self.vals:
-            return self._get_sqlarray((':' + c for c in self.cols))
+            return self._get_sqlarray(('%({})s'.format(c) for c in self.cols))
         return self._get_sqlarray(self.vals)
 
     @property
     def _cols(self):
+        if not self.cols:
+            return self._get_sqlarray(self.vals.keys())
         return self._get_sqlarray(self.cols)
 
-    @property
-    def _pairs(self):
-        return ', '.join(['{} = {}'.format(k, v)
-                          for k, v in zip(self.cols, self.vals)])
+    def _pairs(self, src=None):
+        if src is None:
+            if isinstance(self.vals, dict):
+                src = self.vals
+            elif not self.vals:
+                src = dict(zip(self.cols,
+                               ['%({})s'.format(c) for c in self.cols]))
+            else:
+                src = dict(zip(self.cols, self.vals))
+        return ', '.join(['{} = {}'.format(k, v) for (k, v) in src.items()])
 
-    @staticmethod
-    def _get_sqlarray(vals):
+    def _get_sqlarray(self, vals):
         if is_seq(vals):
             return '({})'.format(', '.join(vals))
+        if isinstance(vals, dict):
+            return '({})'.format(self._pairs(vals))
         if vals.startswith('(') and vals.endswith(')'):
             return vals
         return '({})'.format(vals)
@@ -445,11 +454,13 @@ class Insert(Statement, ParamSerializerMixin):
 class Replace(Statement, ParamSerializerMixin):
     clauses = {'where': Where}
 
-    def __init__(self, table, cols, vals, where, **kwargs):
+    def __init__(self, table, where, cols=None, vals=None, **kwargs):
         self.table = table
         self.cols = cols
         self.vals = vals
         self.where = where
+        if not self.cols and not isinstance(self.vals, dict):
+            raise ValueError("Unable to infer column names.")
 
     @property
     def _where(self):
@@ -481,5 +492,5 @@ class Replace(Statement, ParamSerializerMixin):
         '''.format(table=self.table,
                    cols=self._cols,
                    vals=self._vals,
-                   pairs=self._pairs,
+                   pairs=self._pairs(),
                    where=self._where)
