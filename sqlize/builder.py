@@ -36,7 +36,7 @@ def sqlarray(n):
         return ''
     if is_seq(n):
         n = len(n)
-    return '({})'.format(', '.join('%s' * n))
+    return '({})'.format(', '.join(['%s'] * n))
 
 
 def sqlin(col, n):
