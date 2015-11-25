@@ -451,46 +451,27 @@ class Insert(Statement, ParamSerializerMixin):
         return sql + ';'
 
 
-class Replace(Statement, ParamSerializerMixin):
-    clauses = {'where': Where}
+class Replace(Insert):
 
-    def __init__(self, table, where, cols=None, vals=None, **kwargs):
+    def __init__(self, table, constraints, cols=None, vals=None, **kwargs):
         self.table = table
+        self.constraints = constraints
         self.cols = cols
         self.vals = vals
-        self.where = where
         if not self.cols and not isinstance(self.vals, dict):
             raise ValueError("Unable to infer column names.")
 
     @property
-    def _where(self):
-        return self._get_clause(self.where, Where)
+    def _constraints(self):
+        return ', '.join(self.constraints)
 
     def serialize(self):
-        return '''
-        DO $$
-        BEGIN
-            LOOP
-                -- first try to update the key
-                UPDATE {table:s} SET {pairs:s} {where:s};
-                IF found THEN
-                    RETURN;
-                END IF;
-                -- not there, so try to insert the key
-                -- if someone else inserts the same key concurrently,
-                -- we could get a unique-key failure
-                BEGIN
-                    INSERT INTO {table:s}{cols:s} VALUES {vals:s};
-                    RETURN;
-                EXCEPTION WHEN unique_violation THEN
-                    -- Do nothing, and loop to try the UPDATE again.
-                END;
-            END LOOP;
-        END;
-        $$
-        LANGUAGE plpgsql;
-        '''.format(table=self.table,
-                   cols=self._cols,
-                   vals=self._vals,
-                   pairs=self._pairs(),
-                   where=self._where)
+        sql = '{} {}'.format(self.keyword, self.table)
+        if self.cols:
+            sql += ' {}'.format(self._cols)
+        sql += ' VALUES {} ON CONFLICT ({}) DO UPDATE SET {}'.format(
+            self._vals,
+            self._constraints,
+            self._pairs()
+        )
+        return sql + ';'
