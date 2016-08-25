@@ -321,7 +321,9 @@ class Select(Statement):
 
     def serialize(self):
         sql = 'SELECT '
-        sql += ', '.join(self._what)
+        what = (s.as_subquery() if hasattr(s, 'as_subquery') else s
+                for s in self._what)
+        sql += ', '.join(what)
         if self.sets:
             sql += ' {}'.format(self._from)
         if self.where:
@@ -333,6 +335,9 @@ class Select(Statement):
         if self.limit:
             sql += ' {}'.format(self._limit)
         return sql + ';'
+
+    def as_subquery(self):
+        return '({})'.format(self.serialize().rstrip(';'))
 
     @property
     def _what(self):

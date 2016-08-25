@@ -310,6 +310,12 @@ def test_select_what_iter():
     assert str(sql) == 'SELECT foo, bar;'
 
 
+def test_select_subquery():
+    subsql = mod.Select('foo')
+    sql = mod.Select(['bar', subsql])
+    assert str(sql) == 'SELECT bar, (SELECT foo);'
+
+
 def test_select_from():
     sql = mod.Select('*', 'foo')
     assert str(sql) == 'SELECT * FROM foo;'
