@@ -89,10 +89,24 @@ def test_from_add_join_on():
     assert str(sql) == 'FROM foo JOIN bar ON foo.test = bar.footest'
 
 
+def test_from_add_join_on_with_subquery():
+    sql = mod.From('foo')
+    subsql = mod.Select('bar')
+    sql.join(subsql, on='foo.test = bar.footest')
+    assert str(sql) == 'FROM foo JOIN (SELECT bar) ON foo.test = bar.footest'
+
+
 def test_from_add_join_using():
     sql = mod.From('foo')
     sql.join('bar', using='test_id')
     assert str(sql) == 'FROM foo JOIN bar USING (test_id)'
+
+
+def test_from_add_join_using_with_subquery():
+    sql = mod.From('foo')
+    subsql = mod.Select('bar')
+    sql.join(subsql, using='test_id')
+    assert str(sql) == 'FROM foo JOIN (SELECT bar) USING (test_id)'
 
 
 def test_from_add_join_using_multiple():

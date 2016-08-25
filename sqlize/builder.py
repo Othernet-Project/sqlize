@@ -128,6 +128,8 @@ class From(Clause):
         return self
 
     def join(self, table, kind=None, natural=False, on=None, using=[]):
+        if hasattr(table, 'as_subquery'):
+            table = table.as_subquery()
         j = []
         if natural:
             j.append(self.NATURAL)
