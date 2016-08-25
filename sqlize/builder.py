@@ -311,7 +311,7 @@ class Select(Statement):
     }
 
     def __init__(self, what=['*'], sets=None, where=None, group=None,
-                 order=None, limit=None, offset=None):
+                 order=None, limit=None, offset=None, alias=None):
         self.what = what
         self.sets = sets
         self.where = where
@@ -319,6 +319,7 @@ class Select(Statement):
         self.order = order
         self.limit = limit
         self.offset = offset
+        self.alias = alias
 
     def serialize(self):
         sql = 'SELECT '
@@ -337,8 +338,13 @@ class Select(Statement):
             sql += ' {}'.format(self._limit)
         return sql + ';'
 
-    def as_subquery(self):
-        return '({})'.format(self.serialize().rstrip(';'))
+    def as_subquery(self, alias=None):
+        alias = alias or self.alias
+        if alias:
+            suffix = ' AS {}'.format(alias)
+        else:
+            suffix = ''
+        return '({}){}'.format(self.serialize().rstrip(';'), suffix)
 
     @property
     def _what(self):

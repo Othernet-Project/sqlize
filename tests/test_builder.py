@@ -305,6 +305,16 @@ def test_select():
     assert str(sql) == 'SELECT *;'
 
 
+def test_select_as_subquery():
+    sql = mod.Select()
+    assert sql.as_subquery() == '(SELECT *)'
+
+
+def test_select_as_subquery_alias():
+    sql = mod.Select()
+    assert sql.as_subquery(alias='foo') == '(SELECT *) AS foo'
+
+
 def test_select_what_iter():
     sql = mod.Select(['foo', 'bar'])
     assert str(sql) == 'SELECT foo, bar;'
@@ -314,6 +324,19 @@ def test_select_subquery():
     subsql = mod.Select('foo')
     sql = mod.Select(['bar', subsql])
     assert str(sql) == 'SELECT bar, (SELECT foo);'
+
+
+def test_select_sbuquery_alias():
+    subsql = mod.Select('foo', alias='baz')
+    sql = mod.Select(['bar', subsql])
+    assert str(sql) == 'SELECT bar, (SELECT foo) AS baz;'
+
+
+def test_select_sbuquery_alias_property():
+    subsql = mod.Select('foo')
+    subsql.alias = 'baz'
+    sql = mod.Select(['bar', subsql])
+    assert str(sql) == 'SELECT bar, (SELECT foo) AS baz;'
 
 
 def test_select_from():
