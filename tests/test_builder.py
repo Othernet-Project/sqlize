@@ -366,6 +366,13 @@ def test_select_tables_attrib():
     assert str(sql) == 'SELECT * FROM foo CROSS JOIN bar;'
 
 
+def test_select_tables_attrib_submodule():
+    subsql = mod.Select('bar')
+    sql = mod.Select(sets='foo')
+    sql.sets.join(subsql)
+    assert str(sql) == 'SELECT * FROM foo JOIN (SELECT bar);'
+
+
 def test_select_where():
     sql = mod.Select('*', where='a = b')
     assert str(sql) == 'SELECT * WHERE a = b;'
