@@ -152,6 +152,11 @@ class From(Clause):
     def natural_join(self, table):
         return self.join(table, None, True)
 
+    def serialize_part(self, connector, part):
+        if hasattr(part, 'as_subquery'):
+            part = part.as_subquery()
+        return super(From, self).serialize_part(connector, part)
+
 
 class Where(Clause):
     keyword = 'WHERE'

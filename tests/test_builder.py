@@ -349,6 +349,12 @@ def test_select_from_multiple():
     assert str(sql) == 'SELECT * FROM foo , bar;'
 
 
+def test_select_from_subquery():
+    subsql = mod.Select('foo')
+    sql = mod.Select('*', ['bar', subsql])
+    assert str(sql) == 'SELECT * FROM bar , (SELECT foo);'
+
+
 def test_select_from_with_cls():
     sql = mod.Select('*', mod.From('foo', 'bar', join='CROSS'))
     assert str(sql) == 'SELECT * FROM foo CROSS JOIN bar;'
