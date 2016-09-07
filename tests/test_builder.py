@@ -89,10 +89,24 @@ def test_from_add_join_on():
     assert str(sql) == 'FROM foo JOIN bar ON foo.test = bar.footest'
 
 
+def test_from_add_join_on_with_subquery():
+    sql = mod.From('foo')
+    subsql = mod.Select('bar')
+    sql.join(subsql, on='foo.test = bar.footest')
+    assert str(sql) == 'FROM foo JOIN (SELECT bar) ON foo.test = bar.footest'
+
+
 def test_from_add_join_using():
     sql = mod.From('foo')
     sql.join('bar', using='test_id')
     assert str(sql) == 'FROM foo JOIN bar USING (test_id)'
+
+
+def test_from_add_join_using_with_subquery():
+    sql = mod.From('foo')
+    subsql = mod.Select('bar')
+    sql.join(subsql, using='test_id')
+    assert str(sql) == 'FROM foo JOIN (SELECT bar) USING (test_id)'
 
 
 def test_from_add_join_using_multiple():
@@ -305,9 +319,38 @@ def test_select():
     assert str(sql) == 'SELECT *;'
 
 
+def test_select_as_subquery():
+    sql = mod.Select()
+    assert sql.as_subquery() == '(SELECT *)'
+
+
+def test_select_as_subquery_alias():
+    sql = mod.Select()
+    assert sql.as_subquery(alias='foo') == '(SELECT *) AS foo'
+
+
 def test_select_what_iter():
     sql = mod.Select(['foo', 'bar'])
     assert str(sql) == 'SELECT foo, bar;'
+
+
+def test_select_subquery():
+    subsql = mod.Select('foo')
+    sql = mod.Select(['bar', subsql])
+    assert str(sql) == 'SELECT bar, (SELECT foo);'
+
+
+def test_select_sbuquery_alias():
+    subsql = mod.Select('foo', alias='baz')
+    sql = mod.Select(['bar', subsql])
+    assert str(sql) == 'SELECT bar, (SELECT foo) AS baz;'
+
+
+def test_select_sbuquery_alias_property():
+    subsql = mod.Select('foo')
+    subsql.alias = 'baz'
+    sql = mod.Select(['bar', subsql])
+    assert str(sql) == 'SELECT bar, (SELECT foo) AS baz;'
 
 
 def test_select_from():
@@ -320,6 +363,12 @@ def test_select_from_multiple():
     assert str(sql) == 'SELECT * FROM foo , bar;'
 
 
+def test_select_from_subquery():
+    subsql = mod.Select('foo')
+    sql = mod.Select('*', ['bar', subsql])
+    assert str(sql) == 'SELECT * FROM bar , (SELECT foo);'
+
+
 def test_select_from_with_cls():
     sql = mod.Select('*', mod.From('foo', 'bar', join='CROSS'))
     assert str(sql) == 'SELECT * FROM foo CROSS JOIN bar;'
@@ -329,6 +378,13 @@ def test_select_tables_attrib():
     sql = mod.Select(sets='foo')
     sql.sets.join('bar', mod.From.CROSS)
     assert str(sql) == 'SELECT * FROM foo CROSS JOIN bar;'
+
+
+def test_select_tables_attrib_submodule():
+    subsql = mod.Select('bar')
+    sql = mod.Select(sets='foo')
+    sql.sets.join(subsql)
+    assert str(sql) == 'SELECT * FROM foo JOIN (SELECT bar);'
 
 
 def test_select_where():

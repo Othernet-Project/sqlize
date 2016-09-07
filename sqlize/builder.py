@@ -19,6 +19,7 @@ INNER = 'INNER'
 CROSS = 'CROSS'
 OUTER = 'OUTER'
 LEFT_OUTER = 'LEFT OUTER'
+LEFT = 'LEFT'
 JOIN = 'JOIN'
 
 
@@ -127,6 +128,8 @@ class From(Clause):
         return self
 
     def join(self, table, kind=None, natural=False, on=None, using=[]):
+        if hasattr(table, 'as_subquery'):
+            table = table.as_subquery()
         j = []
         if natural:
             j.append(self.NATURAL)
@@ -150,6 +153,11 @@ class From(Clause):
 
     def natural_join(self, table):
         return self.join(table, None, True)
+
+    def serialize_part(self, connector, part):
+        if hasattr(part, 'as_subquery'):
+            part = part.as_subquery()
+        return super(From, self).serialize_part(connector, part)
 
 
 class Where(Clause):
@@ -310,7 +318,7 @@ class Select(Statement):
     }
 
     def __init__(self, what=['*'], sets=None, where=None, group=None,
-                 order=None, limit=None, offset=None):
+                 order=None, limit=None, offset=None, alias=None):
         self.what = what
         self.sets = sets
         self.where = where
@@ -318,10 +326,13 @@ class Select(Statement):
         self.order = order
         self.limit = limit
         self.offset = offset
+        self.alias = alias
 
     def serialize(self):
         sql = 'SELECT '
-        sql += ', '.join(self._what)
+        what = (s.as_subquery() if hasattr(s, 'as_subquery') else s
+                for s in self._what)
+        sql += ', '.join(what)
         if self.sets:
             sql += ' {}'.format(self._from)
         if self.where:
@@ -333,6 +344,14 @@ class Select(Statement):
         if self.limit:
             sql += ' {}'.format(self._limit)
         return sql + ';'
+
+    def as_subquery(self, alias=None):
+        alias = alias or self.alias
+        if alias:
+            suffix = ' AS {}'.format(alias)
+        else:
+            suffix = ''
+        return '({}){}'.format(self.serialize().rstrip(';'), suffix)
 
     @property
     def _what(self):
